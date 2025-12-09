@@ -106,6 +106,27 @@ class DateUtils:
         return yesterday.strftime('%Y-%m-%d')
 
     @staticmethod
+    def get_latest_available_date() -> datetime:
+        """
+        獲取最新可獲取的數據日期
+        台灣股市收盤時間為 13:30，在此之後可以獲取當天數據
+
+        Returns:
+            datetime: 最新可獲取數據的日期
+        """
+        now = datetime.now()
+
+        # 台灣股市收盤時間 13:30
+        market_close_time = now.replace(hour=13, minute=30, second=0, microsecond=0)
+
+        # 如果現在時間 >= 13:30，且今天是交易日，則返回今天
+        if now >= market_close_time and DateUtils.is_trading_day(now):
+            return now
+
+        # 否則返回前一個交易日
+        return DateUtils.get_previous_trading_day(now)
+
+    @staticmethod
     def get_date_range_months(start_date: datetime, end_date: datetime) -> List[tuple]:
         """
         獲取日期範圍內的所有年月組合

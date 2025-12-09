@@ -1,18 +1,18 @@
 """
-買點訊號服務
-負責生成買點訊號與統計
+買賣訊號服務
+負責生成買點與賣點訊號及統計
 """
 import pandas as pd
 from typing import Dict, List
 
 
 class SignalService:
-    """買點訊號生成服務"""
+    """買賣訊號生成服務"""
 
     @staticmethod
     def generate_signals(df: pd.DataFrame) -> pd.DataFrame:
         """
-        生成買點訊號
+        生成買點與賣點訊號
 
         Args:
             df: 包含技術指標的 DataFrame
@@ -22,56 +22,95 @@ class SignalService:
         """
         df = df.copy()
 
-        # 策略一：趨勢確立買點
+        # === 買點訊號 ===
+
+        # 買點策略一：趨勢確立買點
         cross_signal = (df['ma5'].shift(1) < df['ma20'].shift(1)) & (df['ma5'] > df['ma20'])
         bull_arrangement = (df['ma5'] > df['ma20']) & (df['ma20'] > df['ma60'])
         volume_confirm = df['volume'] > df['avg_volume5']
 
-        df['signal_type1'] = (cross_signal & bull_arrangement & volume_confirm).apply(
-            lambda x: "趨勢確立買點" if x else ""
+        df['buy_signal_type1'] = (cross_signal & bull_arrangement & volume_confirm).apply(
+            lambda x: "🚀 趨勢確立買點" if x else ""
         )
 
-        # 策略二：拉回支撐買點
+        # 買點策略二：拉回支撐買點
         macd_bull = df['dif'] > df['dem']
         osc_rebound = df['osc'] > df['osc'].shift(1)
         ma20_support = df['close'] > df['ma20']
 
-        df['signal_type2'] = (macd_bull & osc_rebound & ma20_support).apply(
-            lambda x: "拉回支撐買點" if x else ""
+        df['buy_signal_type2'] = (macd_bull & osc_rebound & ma20_support).apply(
+            lambda x: "✨ 拉回支撐買點" if x else ""
         )
 
-        # 合併訊號
-        df['buy_signal'] = df['signal_type1'] + df['signal_type2']
+        # 合併買點訊號
+        df['buy_signal'] = df['buy_signal_type1'] + df['buy_signal_type2']
+
+        # === 賣點訊號 ===
+
+        # 賣點策略一：趨勢反轉賣點
+        death_cross = (df['ma5'].shift(1) > df['ma20'].shift(1)) & (df['ma5'] < df['ma20'])
+        bear_arrangement = (df['ma5'] < df['ma20']) & (df['ma20'] < df['ma60'])
+        sell_volume_confirm = df['volume'] > df['avg_volume5']
+
+        df['sell_signal_type1'] = (death_cross & bear_arrangement & sell_volume_confirm).apply(
+            lambda x: "⬇️ 趨勢反轉賣點" if x else ""
+        )
+
+        # 賣點策略二：MACD 轉弱賣點
+        macd_bear = df['dif'] < df['dem']
+        osc_decline = df['osc'] < df['osc'].shift(1)
+        break_ma20 = df['close'] < df['ma20']
+
+        df['sell_signal_type2'] = (macd_bear & osc_decline & break_ma20).apply(
+            lambda x: "🔶 MACD轉弱賣點" if x else ""
+        )
+
+        # 合併賣點訊號
+        df['sell_signal'] = df['sell_signal_type1'] + df['sell_signal_type2']
+
+        # 合併所有訊號（買賣）
+        df['signal'] = df.apply(
+            lambda row: row['buy_signal'] if row['buy_signal'] else row['sell_signal'],
+            axis=1
+        )
 
         return df
 
     @staticmethod
-    def get_signal_df(df: pd.DataFrame) -> pd.DataFrame:
+    def get_signal_df(df: pd.DataFrame, signal_type: str = 'all') -> pd.DataFrame:
         """
         獲取有訊號的數據
 
         Args:
             df: 包含訊號的 DataFrame
+            signal_type: 訊號類型 ('all', 'buy', 'sell')
 
         Returns:
             pd.DataFrame: 只包含有訊號的數據
         """
-        signal_df = df[df['buy_signal'] != ''].copy()
+        if signal_type == 'buy':
+            signal_df = df[df['buy_signal'] != ''].copy()
+        elif signal_type == 'sell':
+            signal_df = df[df['sell_signal'] != ''].copy()
+        else:  # 'all'
+            signal_df = df[(df['buy_signal'] != '') | (df['sell_signal'] != '')].copy()
+
         return signal_df
 
     @staticmethod
-    def get_latest_signals(df: pd.DataFrame, limit: int = 5) -> List[Dict]:
+    def get_latest_signals(df: pd.DataFrame, limit: int = 10, signal_type: str = 'all') -> List[Dict]:
         """
-        獲取最近的買點訊號
+        獲取最近的訊號（買點或賣點）
 
         Args:
             df: 包含訊號的 DataFrame
             limit: 返回數量
+            signal_type: 訊號類型 ('all', 'buy', 'sell')
 
         Returns:
             List[Dict]: 訊號列表
         """
-        signal_df = SignalService.get_signal_df(df)
+        signal_df = SignalService.get_signal_df(df, signal_type)
 
         if signal_df.empty:
             return []
@@ -81,9 +120,14 @@ class SignalService:
 
         signals = []
         for date, row in recent_signals.iterrows():
+            # 判斷是買點還是賣點
+            is_buy = row['buy_signal'] != ''
+            signal_text = row['buy_signal'] if is_buy else row['sell_signal']
+
             signals.append({
                 'date': date.strftime('%Y-%m-%d'),
-                'signal_type': row['buy_signal'],
+                'signal_type': signal_text,
+                'signal_category': 'buy' if is_buy else 'sell',
                 'close': round(row['close'], 2),
                 'ma20': round(row['ma20'], 2),
                 'volume': int(row['volume']),
@@ -98,7 +142,7 @@ class SignalService:
     @staticmethod
     def get_signal_summary(df: pd.DataFrame) -> Dict:
         """
-        獲取訊號摘要統計
+        獲取訊號摘要統計（包含買賣訊號）
 
         Args:
             df: 包含訊號的 DataFrame
@@ -106,33 +150,49 @@ class SignalService:
         Returns:
             Dict: 訊號摘要
         """
-        signal_df = SignalService.get_signal_df(df)
+        buy_signal_df = SignalService.get_signal_df(df, 'buy')
+        sell_signal_df = SignalService.get_signal_df(df, 'sell')
+        all_signal_df = SignalService.get_signal_df(df, 'all')
 
-        if signal_df.empty:
+        if all_signal_df.empty:
             return {
                 'total_count': 0,
-                'type1_count': 0,
-                'type2_count': 0,
+                'buy_total_count': 0,
+                'buy_type1_count': 0,
+                'buy_type2_count': 0,
+                'sell_total_count': 0,
+                'sell_type1_count': 0,
+                'sell_type2_count': 0,
                 'latest_signal': None
             }
 
-        # 統計各類型訊號數量
-        type1_count = (signal_df['signal_type1'] != '').sum()
-        type2_count = (signal_df['signal_type2'] != '').sum()
+        # 統計買點訊號
+        buy_type1_count = (buy_signal_df['buy_signal_type1'] != '').sum() if not buy_signal_df.empty else 0
+        buy_type2_count = (buy_signal_df['buy_signal_type2'] != '').sum() if not buy_signal_df.empty else 0
+
+        # 統計賣點訊號
+        sell_type1_count = (sell_signal_df['sell_signal_type1'] != '').sum() if not sell_signal_df.empty else 0
+        sell_type2_count = (sell_signal_df['sell_signal_type2'] != '').sum() if not sell_signal_df.empty else 0
 
         # 獲取最新訊號
-        latest_row = signal_df.iloc[-1]
+        latest_row = all_signal_df.iloc[-1]
+        is_buy = latest_row['buy_signal'] != ''
         latest_signal = {
             'date': latest_row.name.strftime('%Y-%m-%d'),
-            'type': latest_row['buy_signal'],
+            'type': latest_row['buy_signal'] if is_buy else latest_row['sell_signal'],
+            'category': 'buy' if is_buy else 'sell',
             'close': round(latest_row['close'], 2),
             'ma20': round(latest_row['ma20'], 2)
         }
 
         return {
-            'total_count': len(signal_df),
-            'type1_count': int(type1_count),
-            'type2_count': int(type2_count),
+            'total_count': len(all_signal_df),
+            'buy_total_count': len(buy_signal_df),
+            'buy_type1_count': int(buy_type1_count),
+            'buy_type2_count': int(buy_type2_count),
+            'sell_total_count': len(sell_signal_df),
+            'sell_type1_count': int(sell_type1_count),
+            'sell_type2_count': int(sell_type2_count),
             'latest_signal': latest_signal
         }
 

@@ -22,7 +22,7 @@
         type="text"
         class="form-control"
         id="searchInput"
-        placeholder="搜尋股票代號..."
+        placeholder="搜尋股票代號或股票名稱..."
         oninput="filterStocks()"
     >
 </div>
@@ -89,12 +89,17 @@ function renderStocks(stocks) {
     container.innerHTML = '';
 
     stocks.forEach(stock => {
+        // 構建顯示名稱：如果有股票名稱且不同於代號，則顯示為 "代號 (名稱)"
+        const displayName = stock.stock_name && stock.stock_name !== stock.ticker
+            ? `${stock.ticker} <span class="text-secondary">(${stock.stock_name})</span>`
+            : stock.ticker;
+
         const card = `
             <div class="col-md-6 col-lg-4 mb-3 stock-card" data-ticker="${stock.ticker}">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
                         <h5 class="card-title">
-                            ${stock.ticker}
+                            ${displayName}
                             <span class="badge bg-secondary ms-2">${stock.file_size_kb} KB</span>
                         </h5>
                         <p class="card-text">
@@ -115,7 +120,7 @@ function renderStocks(stocks) {
                             <a href="/analyze/${stock.ticker}" class="btn btn-primary btn-sm">
                                 <i class="bi bi-graph-up"></i> 查看分析
                             </a>
-                            <button class="btn btn-outline-danger btn-sm" onclick="deleteStock('${stock.ticker}', event)">
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteStock('${stock.ticker}', '${stock.stock_name || stock.ticker}', event)">
                                 <i class="bi bi-trash"></i> 刪除
                             </button>
                         </div>
@@ -129,23 +134,26 @@ function renderStocks(stocks) {
 
 function filterStocks() {
     const search = document.getElementById('searchInput').value.toLowerCase();
-    const filtered = allStocks.filter(stock =>
-        stock.ticker.toLowerCase().includes(search)
-    );
+    const filtered = allStocks.filter(stock => {
+        const tickerMatch = stock.ticker.toLowerCase().includes(search);
+        const nameMatch = stock.stock_name && stock.stock_name.toLowerCase().includes(search);
+        return tickerMatch || nameMatch;
+    });
     renderStocks(filtered);
 }
 
-async function deleteStock(ticker, event) {
+async function deleteStock(ticker, stockName, event) {
     event.preventDefault();
 
-    if (!confirm(`確定要刪除 ${ticker} 的快取嗎？`)) {
+    const displayName = stockName && stockName !== ticker ? `${ticker} (${stockName})` : ticker;
+    if (!confirm(`確定要刪除 ${displayName} 的快取嗎？`)) {
         return;
     }
 
     try {
         const response = await axios.delete(`/api/cache/${ticker}`);
         if (response.data.success) {
-            showToast(`已刪除 ${ticker} 的快取`, 'success');
+            showToast(`已刪除 ${displayName} 的快取`, 'success');
             loadHistory();
         }
     } catch (error) {

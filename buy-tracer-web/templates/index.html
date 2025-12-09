@@ -7,10 +7,10 @@
 <div class="text-center mb-5">
     <h1 class="display-4 fw-bold mb-3">
         <i class="bi bi-graph-up-arrow text-primary"></i>
-        股票買點追蹤系統
+        股票買賣點追蹤系統
     </h1>
     <p class="lead text-secondary">
-        運用技術分析，智能追蹤台股買點訊號
+        運用技術分析，智能追蹤台股買賣點訊號
     </p>
 </div>
 
@@ -25,19 +25,23 @@
                             type="text"
                             class="form-control"
                             id="tickerInput"
-                            placeholder="輸入股票代號..."
-                            pattern="[0-9]{4,6}"
+                            list="stocksList"
+                            placeholder="輸入股票代號或名稱..."
                             required
                             autofocus
+                            autocomplete="off"
                         >
+                        <datalist id="stocksList">
+                            <!-- 動態載入 -->
+                        </datalist>
                         <button class="btn btn-primary" type="submit" id="analyzeBtn">
                             <i class="bi bi-search"></i> 分析
                         </button>
                     </div>
                     <div class="form-text mt-2">
-                        <strong>常見股票:</strong> 2330 (台積電)、2454 (聯發科)、2317 (鴻海)、2881 (富邦金)
+                        <strong>常見股票:</strong> 2330 (台積電)、2454 (聯發科)、2317 (鴻海)、00983A (ETF)
                         <br>
-                        <small class="text-muted">註: 部分股票可能因資料來源限制而無法查詢</small>
+                        <small class="text-muted">註: 支援輸入股票代號或名稱，包含 ETF（如：00983A）</small>
                     </div>
                 </form>
             </div>
@@ -64,10 +68,10 @@
         <div class="card h-100 border-success">
             <div class="card-body text-center">
                 <i class="bi bi-bullseye display-4 text-success mb-3"></i>
-                <h5 class="card-title">雙策略買點</h5>
-                <ul class="list-unstyled text-secondary">
-                    <li class="mb-2">🚀 趨勢確立買點</li>
-                    <li>✨ 拉回支撐買點</li>
+                <h5 class="card-title">完整買賣策略</h5>
+                <ul class="list-unstyled text-secondary small">
+                    <li class="mb-1">📈 買點: 趨勢確立 / 拉回支撐</li>
+                    <li>📉 賣點: 趨勢反轉 / MACD轉弱</li>
                 </ul>
             </div>
         </div>
@@ -87,30 +91,59 @@
     </div>
 </div>
 
-<!-- 買點策略詳細說明 -->
+<!-- 買賣點策略詳細說明 -->
 <div class="card mb-5">
     <div class="card-header bg-primary text-white">
-        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 買點策略說明</h5>
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 買賣點策略說明</h5>
     </div>
     <div class="card-body">
-        <div class="row">
-            <div class="col-md-6">
-                <h6 class="text-success fw-bold">🚀 策略一：趨勢確立買點</h6>
-                <p class="text-secondary mb-2 small">適用於趨勢啟動初期，捕捉主升段行情</p>
-                <ul class="small">
-                    <li>MA5 向上突破 MA20（黃金交叉）</li>
-                    <li>多頭排列: MA5 > MA20 > MA60</li>
-                    <li>成交量放大（大於 5 日均量）</li>
-                </ul>
+        <!-- 買點策略 -->
+        <div class="mb-4">
+            <h5 class="text-success mb-3">📈 買點策略</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-success fw-bold">🚀 策略一：趨勢確立買點</h6>
+                    <p class="text-secondary mb-2 small">適用於趨勢啟動初期，捕捉主升段行情</p>
+                    <ul class="small">
+                        <li>MA5 向上突破 MA20（黃金交叉）</li>
+                        <li>多頭排列: MA5 > MA20 > MA60</li>
+                        <li>成交量放大（大於 5 日均量）</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-success fw-bold">✨ 策略二：拉回支撐買點</h6>
+                    <p class="text-secondary mb-2 small">適用於上升趨勢中的回檔，風險較低</p>
+                    <ul class="small">
+                        <li>MACD 維持多頭（DIF > DEM）</li>
+                        <li>柱狀體二次翻紅（OSC 反彈）</li>
+                        <li>收盤價守穩 MA20 支撐</li>
+                    </ul>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h6 class="text-primary fw-bold">✨ 策略二：拉回支撐買點</h6>
-                <p class="text-secondary mb-2 small">適用於上升趨勢中的回檔，風險較低</p>
-                <ul class="small">
-                    <li>MACD 維持多頭（DIF > DEM）</li>
-                    <li>柱狀體二次翻紅（OSC 反彈）</li>
-                    <li>收盤價守穩 MA20 支撐</li>
-                </ul>
+        </div>
+
+        <!-- 賣點策略 -->
+        <div>
+            <h5 class="text-danger mb-3">📉 賣點策略</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-danger fw-bold">⬇️ 策略一：趨勢反轉賣點</h6>
+                    <p class="text-secondary mb-2 small">趨勢結束信號，保護獲利及時退場</p>
+                    <ul class="small">
+                        <li>MA5 向下跌破 MA20（死亡交叉）</li>
+                        <li>空頭排列: MA5 < MA20 < MA60</li>
+                        <li>成交量放大（確認賣壓）</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-danger fw-bold">🔶 策略二：MACD 轉弱賣點</h6>
+                    <p class="text-secondary mb-2 small">動能衰退警示，提早退場避險</p>
+                    <ul class="small">
+                        <li>MACD 轉空（DIF < DEM）</li>
+                        <li>柱狀體持續下降（OSC 減弱）</li>
+                        <li>收盤價跌破 MA20</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
@@ -119,12 +152,96 @@
 
 {% block extra_scripts %}
 <script>
+let stocksMap = {};  // 股票名稱到代號的映射
+
+// 頁面載入時獲取股票列表
+document.addEventListener('DOMContentLoaded', function() {
+    loadStocksList();
+});
+
+async function loadStocksList() {
+    try {
+        const response = await axios.get('/api/stocks/list');
+        if (response.data.success) {
+            const stocks = response.data.data.stocks;
+            const datalist = document.getElementById('stocksList');
+
+            // 填充 datalist 和映射
+            stocks.forEach(stock => {
+                // 添加選項，value 為股票代號，label 顯示完整資訊
+                const option = document.createElement('option');
+                option.value = stock.ticker;  // value 為純代號
+                option.textContent = stock.display;  // 顯示 "2330 台積電"
+                datalist.appendChild(option);
+
+                // 建立映射: 名稱 -> 代號, 代號 -> 代號
+                stocksMap[stock.ticker] = stock.ticker;
+                stocksMap[stock.name] = stock.ticker;
+                stocksMap[stock.display.toLowerCase()] = stock.ticker;  // 添加小寫版本
+            });
+        }
+    } catch (error) {
+        console.error('載入股票列表失敗:', error);
+    }
+}
+
 function submitAnalyze(event) {
     event.preventDefault();
-    const ticker = document.getElementById('tickerInput').value.trim();
+    const input = document.getElementById('tickerInput').value.trim();
+
+    if (!input) return;
+
+    // 嘗試從輸入中提取股票代號
+    let ticker = extractTicker(input);
+
     if (ticker) {
         window.location.href = `/analyze/${ticker}`;
+    } else {
+        showToast('請輸入有效的股票代號或名稱', 'warning');
     }
+}
+
+function extractTicker(input) {
+    // 轉為大寫以統一處理
+    const upperInput = input.toUpperCase();
+
+    // 情況 1: 直接輸入股票代號（4-6位數字，或4-6位數字+1個字母）
+    if (/^\d{4,6}[A-Z]?$/.test(upperInput)) {
+        return upperInput;
+    }
+
+    // 情況 2: 完全匹配映射表中的項目（包括名稱）
+    if (stocksMap[input]) {
+        return stocksMap[input];
+    }
+
+    // 情況 3: 不區分大小寫匹配
+    const lowerInput = input.toLowerCase();
+    if (stocksMap[lowerInput]) {
+        return stocksMap[lowerInput];
+    }
+
+    // 情況 4: 輸入包含股票代號和名稱（如 "2330 台積電" 或 "00983A XXX"）
+    const match = input.match(/(\d{4,6}[A-Z]?)/i);
+    if (match) {
+        return match[1].toUpperCase();
+    }
+
+    // 情況 5: 精確匹配股票名稱（完整名稱）
+    for (const [key, value] of Object.entries(stocksMap)) {
+        if (key === input && !/^\d+[A-Z]?$/.test(key)) {
+            return value;
+        }
+    }
+
+    // 情況 6: 模糊匹配股票名稱（部分名稱）
+    for (const [key, value] of Object.entries(stocksMap)) {
+        if (key.includes(input) && !/^\d+[A-Z]?$/.test(key) && input.length >= 2) {
+            return value;
+        }
+    }
+
+    return null;
 }
 </script>
 {% endblock %}

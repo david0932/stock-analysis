@@ -20,8 +20,8 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap">
                 <div class="mb-2 mb-md-0">
                     <h3 class="mb-1">
-                        <span id="stockName">{{ ticker }}</span>
-                        <span class="text-secondary">(<span id="stockTicker">{{ ticker }}</span>)</span>
+                        <span id="stockTicker">{{ ticker }}</span>
+                        <span class="text-secondary">(<span id="stockName">{{ ticker }}</span>)</span>
                     </h3>
                     <p class="text-secondary mb-0">
                         最新收盤: <span class="fs-4 fw-bold text-primary" id="latestClose">-</span>
@@ -37,29 +37,54 @@
         </div>
     </div>
 
-    <!-- 買點訊號摘要 -->
+    <!-- 買賣訊號摘要 -->
     <div class="row mb-4">
-        <div class="col-md-4 mb-3">
-            <div class="card text-center border-primary">
+        <!-- 買點訊號統計 -->
+        <div class="col-md-6 mb-3">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">📈 買點訊號統計</h6>
+                </div>
                 <div class="card-body">
-                    <h6 class="text-secondary small">總訊號數</h6>
-                    <h2 class="text-primary mb-0 fw-bold" id="totalSignals">-</h2>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">總買點</p>
+                            <h3 class="text-success fw-bold" id="totalBuySignals">-</h3>
+                        </div>
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">趨勢買點</p>
+                            <h3 class="text-success fw-bold" id="buyType1Signals">-</h3>
+                        </div>
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">拉回買點</p>
+                            <h3 class="text-success fw-bold" id="buyType2Signals">-</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
-            <div class="card text-center border-success">
-                <div class="card-body">
-                    <h6 class="text-secondary small">🚀 趨勢買點</h6>
-                    <h2 class="text-success mb-0 fw-bold" id="type1Signals">-</h2>
+
+        <!-- 賣點訊號統計 -->
+        <div class="col-md-6 mb-3">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h6 class="mb-0">📉 賣點訊號統計</h6>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-3">
-            <div class="card text-center border-info">
                 <div class="card-body">
-                    <h6 class="text-secondary small">✨ 拉回買點</h6>
-                    <h2 class="text-info mb-0 fw-bold" id="type2Signals">-</h2>
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">總賣點</p>
+                            <h3 class="text-danger fw-bold" id="totalSellSignals">-</h3>
+                        </div>
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">趨勢賣點</p>
+                            <h3 class="text-danger fw-bold" id="sellType1Signals">-</h3>
+                        </div>
+                        <div class="col-4">
+                            <p class="text-secondary small mb-1">轉弱賣點</p>
+                            <h3 class="text-danger fw-bold" id="sellType2Signals">-</h3>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -103,7 +128,7 @@
     <!-- 訊號詳細列表 -->
     <div class="card mb-4">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0"><i class="bi bi-list-ul"></i> 買點訊號詳細列表</h5>
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> 買賣訊號詳細列表</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -181,23 +206,30 @@ async function analyzeStock(ticker) {
 
 function renderAnalysisResult(data) {
     // 更新股票資訊
-    document.getElementById('stockName').textContent = data.stock_name || data.ticker;
     document.getElementById('stockTicker').textContent = data.ticker;
+    document.getElementById('stockName').textContent = data.stock_name || data.ticker;
     document.getElementById('latestClose').textContent = data.latest_data.close.toLocaleString('zh-TW');
     document.getElementById('latestDate').textContent = data.latest_data.date;
 
-    // 更新訊號摘要
-    document.getElementById('totalSignals').textContent = data.signals.total_count;
-    document.getElementById('type1Signals').textContent = data.signals.type1_count;
-    document.getElementById('type2Signals').textContent = data.signals.type2_count;
+    // 更新買點訊號摘要
+    document.getElementById('totalBuySignals').textContent = data.signals.buy_total_count;
+    document.getElementById('buyType1Signals').textContent = data.signals.buy_type1_count;
+    document.getElementById('buyType2Signals').textContent = data.signals.buy_type2_count;
+
+    // 更新賣點訊號摘要
+    document.getElementById('totalSellSignals').textContent = data.signals.sell_total_count;
+    document.getElementById('sellType1Signals').textContent = data.signals.sell_type1_count;
+    document.getElementById('sellType2Signals').textContent = data.signals.sell_type2_count;
 
     // 顯示最新訊號
     if (data.signals.latest_signal) {
         const alert = document.getElementById('latestSignalAlert');
-        alert.className = 'alert alert-success';
+        const isBuy = data.signals.latest_signal.category === 'buy';
+        alert.className = isBuy ? 'alert alert-success' : 'alert alert-danger';
         alert.style.display = 'block';
+        const icon = isBuy ? '📈' : '📉';
         alert.innerHTML = `
-            <strong>🎯 最新訊號:</strong> ${data.signals.latest_signal.type}
+            <strong>${icon} 最新訊號:</strong> ${data.signals.latest_signal.type}
             (${data.signals.latest_signal.date}) - 收盤價: ${data.signals.latest_signal.close}
         `;
     }
@@ -225,10 +257,15 @@ function renderSignalTable(signals) {
     tbody.innerHTML = '';
 
     signals.reverse().forEach(signal => {
+        // 根據訊號類型選擇樣式
+        const isBuy = signal.signal_category === 'buy';
+        const badgeClass = isBuy ? 'bg-success' : 'bg-danger';
+        const rowClass = isBuy ? '' : 'table-danger';
+
         const row = `
-            <tr>
+            <tr class="${rowClass}">
                 <td>${signal.date}</td>
-                <td><span class="badge bg-primary">${signal.signal_type}</span></td>
+                <td><span class="badge ${badgeClass}">${signal.signal_type}</span></td>
                 <td>${signal.close.toLocaleString('zh-TW')}</td>
                 <td>${signal.ma20.toLocaleString('zh-TW')}</td>
                 <td>${signal.volume.toLocaleString('zh-TW')}</td>

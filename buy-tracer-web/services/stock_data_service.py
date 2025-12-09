@@ -133,14 +133,14 @@ class StockDataService:
             pd.DataFrame: 股票數據
         """
         start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
-        # 獲取到前一個營業日，而不是今天
-        yesterday = datetime.now() - timedelta(days=1)
+        # 獲取最新可用的數據日期（13:30後可獲取當天）
+        latest_date = DateUtils.get_latest_available_date()
         all_data = []
 
-        print(f"  > 數據獲取範圍: {start_date_str} ~ {yesterday.strftime('%Y-%m-%d')}")
+        print(f"  > 數據獲取範圍: {start_date_str} ~ {latest_date.strftime('%Y-%m-%d')}")
 
-        # 獲取年月組合（只到前一日所在月份）
-        months = DateUtils.get_date_range_months(start_date, yesterday)
+        # 獲取年月組合（到最新可用日期所在月份）
+        months = DateUtils.get_date_range_months(start_date, latest_date)
 
         for year, month in months:
             try:
@@ -284,9 +284,14 @@ class StockDataService:
             str: 股票名稱
         """
         try:
-            stock = twstock.Stock(ticker)
-            # twstock 沒有直接提供名稱，使用代號
-            return ticker
+            # 優先從上市股票查找
+            if ticker in twstock.twse:
+                return twstock.twse[ticker].name
+            # 其次從上櫃股票查找
+            elif ticker in twstock.tpex:
+                return twstock.tpex[ticker].name
+            else:
+                return ticker
         except:
             return ticker
 
@@ -303,6 +308,9 @@ class StockDataService:
         for ticker in stocks:
             info = self.cache_manager.get_cache_info(ticker)
             if info:
+                # 如果 stock_name 等於 ticker（舊快取），則動態獲取股票名稱
+                if info.get('stock_name') == ticker:
+                    info['stock_name'] = self._get_stock_name(ticker)
                 stocks_info.append(info)
 
         # 按最後更新時間排序

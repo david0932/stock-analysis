@@ -147,6 +147,7 @@ class CacheManager:
 
         return {
             'ticker': ticker,
+            'stock_name': cache_data.get('metadata', {}).get('stock_name', ticker),
             'exists': True,
             'file_path': cache_path,
             'file_size_kb': round(file_size / 1024, 2),
@@ -175,7 +176,8 @@ class CacheManager:
 
     def is_up_to_date(self, ticker: str) -> bool:
         """
-        檢查快取是否已更新到前一日
+        檢查快取是否已更新到最新可用日期
+        台灣股市收盤時間為 13:30，在此之後可以獲取當天數據
 
         Args:
             ticker: 股票代號
@@ -183,6 +185,8 @@ class CacheManager:
         Returns:
             bool: 是否已是最新
         """
+        from utils import DateUtils
+
         cache_data = self.load(ticker)
         if not cache_data:
             return False
@@ -192,10 +196,10 @@ class CacheManager:
             return False
 
         end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        yesterday = (datetime.now() - timedelta(days=1)).date()
+        latest_available_date = DateUtils.get_latest_available_date().date()
 
-        # 如果快取的最新日期 >= 昨天，則視為最新
-        return end_date >= yesterday
+        # 如果快取的最新日期 >= 最新可用日期，則視為最新
+        return end_date >= latest_available_date
 
     def get_missing_dates(self, ticker: str, target_date: datetime = None) -> List[str]:
         """
@@ -203,17 +207,19 @@ class CacheManager:
 
         Args:
             ticker: 股票代號
-            target_date: 目標日期，默認為昨天
+            target_date: 目標日期，默認為最新可用日期
 
         Returns:
             List[str]: 缺失的日期列表
         """
+        from utils import DateUtils
+
         cache_data = self.load(ticker)
         if not cache_data:
             return []
 
         if target_date is None:
-            target_date = datetime.now() - timedelta(days=1)
+            target_date = DateUtils.get_latest_available_date()
 
         end_date_str = cache_data.get('date_range', {}).get('end_date')
         if not end_date_str:

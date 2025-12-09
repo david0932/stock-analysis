@@ -76,17 +76,19 @@ def analyze_stock():
                 }
             )), 400
 
-        ticker = data['ticker'].strip()
+        ticker = data['ticker'].strip().upper()  # 轉為大寫以統一處理
         start_date = data.get('start_date', Config.DEFAULT_START_DATE)
         plot_days = data.get('days', Config.DEFAULT_PLOT_DAYS)
 
-        # 驗證股票代號格式
-        if not ticker.isdigit() or len(ticker) < 4 or len(ticker) > 6:
+        # 驗證股票代號格式：4-6位數字，或4-6位數字+1個大寫字母（ETF）
+        import re
+        ticker_pattern = re.compile(r'^\d{4,6}[A-Z]?$')
+        if not ticker_pattern.match(ticker):
             return jsonify(create_response(
                 success=False,
                 error={
                     'code': 'INVALID_TICKER_FORMAT',
-                    'message': '股票代號格式錯誤（應為 4-6 位數字）'
+                    'message': '股票代號格式錯誤（應為 4-6 位數字，或 4-6 位數字加一個字母，如：2330 或 00983A）'
                 }
             )), 400
 
@@ -152,10 +154,13 @@ def analyze_stock():
         # 獲取快取資訊
         cache_info = stock_service.cache_manager.get_cache_info(ticker)
 
+        # 獲取股票名稱
+        stock_name = stock_service._get_stock_name(ticker)
+
         # 構建響應
         response_data = {
             'ticker': ticker,
-            'stock_name': ticker,  # twstock 無法直接獲取名稱
+            'stock_name': stock_name,
             'date_range': {
                 'start': df_with_signals.index[0].strftime('%Y-%m-%d'),
                 'end': df_with_signals.index[-1].strftime('%Y-%m-%d'),
@@ -164,8 +169,12 @@ def analyze_stock():
             'latest_data': latest_data,
             'signals': {
                 'total_count': signal_summary['total_count'],
-                'type1_count': signal_summary['type1_count'],
-                'type2_count': signal_summary['type2_count'],
+                'buy_total_count': signal_summary['buy_total_count'],
+                'buy_type1_count': signal_summary['buy_type1_count'],
+                'buy_type2_count': signal_summary['buy_type2_count'],
+                'sell_total_count': signal_summary['sell_total_count'],
+                'sell_type1_count': signal_summary['sell_type1_count'],
+                'sell_type2_count': signal_summary['sell_type2_count'],
                 'latest_signal': signal_summary['latest_signal'],
                 'recent_signals': recent_signals
             },
@@ -320,6 +329,41 @@ def force_update(ticker):
             )), 404
 
         return jsonify(create_response(success=True, data=result))
+
+    except Exception as e:
+        return jsonify(create_response(
+            success=False,
+            error={
+                'code': 'INTERNAL_SERVER_ERROR',
+                'message': str(e)
+            }
+        )), 500
+
+
+@api_bp.route('/stocks/list', methods=['GET'])
+def get_stocks_list():
+    """獲取所有股票列表（上市股票）"""
+    try:
+        import twstock
+
+        stocks_list = []
+        for ticker, info in twstock.twse.items():
+            stocks_list.append({
+                'ticker': ticker,
+                'name': info.name,
+                'display': f"{ticker} {info.name}"
+            })
+
+        # 按股票代號排序
+        stocks_list.sort(key=lambda x: x['ticker'])
+
+        return jsonify(create_response(
+            success=True,
+            data={
+                'total_count': len(stocks_list),
+                'stocks': stocks_list
+            }
+        ))
 
     except Exception as e:
         return jsonify(create_response(

@@ -16,7 +16,7 @@ class ChartService:
     @staticmethod
     def create_candlestick_chart(df: pd.DataFrame, signals_df: pd.DataFrame = None) -> Dict:
         """
-        創建 K 線圖（含均線與買點標記）
+        創建 K 線圖（含均線與買賣點標記）
 
         Args:
             df: 包含技術指標的 DataFrame
@@ -63,33 +63,65 @@ class ChartService:
             line=dict(color='#8b5cf6', width=1.5)
         ))
 
-        # 添加買點標記
+        # 添加買賣點標記
         if signals_df is not None and not signals_df.empty:
-            fig.add_trace(go.Scatter(
-                x=signals_df.index,
-                y=signals_df['close'] * 0.98,  # 稍微低於收盤價
-                mode='markers',
-                name='買點訊號',
-                marker=dict(
-                    symbol='triangle-up',
-                    size=12,
-                    color='#dc2626',
-                    line=dict(color='white', width=1)
-                ),
-                text=signals_df['buy_signal'],
-                hovertemplate='%{text}<br>日期: %{x}<br>價格: %{y:.2f}<extra></extra>'
-            ))
+            # 分離買點和賣點
+            buy_signals = signals_df[signals_df['buy_signal'] != ''].copy()
+            sell_signals = signals_df[signals_df['sell_signal'] != ''].copy()
+
+            # 添加買點標記（綠色向上三角形）
+            if not buy_signals.empty:
+                fig.add_trace(go.Scatter(
+                    x=buy_signals.index,
+                    y=buy_signals['close'] * 0.98,  # 稍微低於收盤價
+                    mode='markers',
+                    name='買點訊號',
+                    marker=dict(
+                        symbol='triangle-up',
+                        size=14,
+                        color='#10b981',  # 綠色
+                        line=dict(color='white', width=2)
+                    ),
+                    text=buy_signals['buy_signal'],
+                    hovertemplate='<b>%{text}</b><br>日期: %{x}<br>價格: %{customdata:.2f}<extra></extra>',
+                    customdata=buy_signals['close']
+                ))
+
+            # 添加賣點標記（紅色向下三角形）
+            if not sell_signals.empty:
+                fig.add_trace(go.Scatter(
+                    x=sell_signals.index,
+                    y=sell_signals['close'] * 1.02,  # 稍微高於收盤價
+                    mode='markers',
+                    name='賣點訊號',
+                    marker=dict(
+                        symbol='triangle-down',
+                        size=14,
+                        color='#ef4444',  # 紅色
+                        line=dict(color='white', width=2)
+                    ),
+                    text=sell_signals['sell_signal'],
+                    hovertemplate='<b>%{text}</b><br>日期: %{x}<br>價格: %{customdata:.2f}<extra></extra>',
+                    customdata=sell_signals['close']
+                ))
 
         # 設定佈局
         fig.update_layout(
-            title='K線圖 & 移動平均線',
+            title='K線圖 & 移動平均線 & 買賣訊號',
             xaxis_title='日期',
             yaxis_title='價格 (元)',
             height=Config.CHART_HEIGHT,
             template=Config.CHART_THEME,
             hovermode='x unified',
             xaxis_rangeslider_visible=False,
-            autosize=True
+            autosize=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
 
         return json.loads(fig.to_json())
