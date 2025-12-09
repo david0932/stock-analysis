@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}首頁 - 股票買點追蹤系統{% endblock %}
+
+{% block content %}
+<!-- 頁首標題區 -->
+<div class="text-center mb-5">
+    <h1 class="display-4 fw-bold mb-3">
+        <i class="bi bi-graph-up-arrow text-primary"></i>
+        股票買點追蹤系統
+    </h1>
+    <p class="lead text-secondary">
+        運用技術分析，智能追蹤台股買點訊號
+    </p>
+</div>
+
+<!-- 股票代號輸入區 -->
+<div class="row justify-content-center mb-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form id="analyzeForm" onsubmit="submitAnalyze(event)">
+                    <div class="input-group input-group-lg">
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="tickerInput"
+                            placeholder="輸入股票代號..."
+                            pattern="[0-9]{4,6}"
+                            required
+                            autofocus
+                        >
+                        <button class="btn btn-primary" type="submit" id="analyzeBtn">
+                            <i class="bi bi-search"></i> 分析
+                        </button>
+                    </div>
+                    <div class="form-text mt-2">
+                        <strong>常見股票:</strong> 2330 (台積電)、2454 (聯發科)、2317 (鴻海)、2881 (富邦金)
+                        <br>
+                        <small class="text-muted">註: 部分股票可能因資料來源限制而無法查詢</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 分析方法說明區 -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-graph-up display-4 text-primary mb-3"></i>
+                <h5 class="card-title">技術指標</h5>
+                <p class="card-text text-secondary">
+                    計算 MA5/MA20/MA60 移動平均線與 MACD 指標，
+                    全面分析股價趨勢與動能。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-success">
+            <div class="card-body text-center">
+                <i class="bi bi-bullseye display-4 text-success mb-3"></i>
+                <h5 class="card-title">雙策略買點</h5>
+                <ul class="list-unstyled text-secondary">
+                    <li class="mb-2">🚀 趨勢確立買點</li>
+                    <li>✨ 拉回支撐買點</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-warning">
+            <div class="card-body text-center">
+                <i class="bi bi-bar-chart-line display-4 text-warning mb-3"></i>
+                <h5 class="card-title">互動式圖表</h5>
+                <p class="card-text text-secondary">
+                    K 線圖、成交量、MACD 圖表動態呈現，
+                    買點清晰標註。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 買點策略詳細說明 -->
+<div class="card mb-5">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 買點策略說明</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-success fw-bold">🚀 策略一：趨勢確立買點</h6>
+                <p class="text-secondary mb-2 small">適用於趨勢啟動初期，捕捉主升段行情</p>
+                <ul class="small">
+                    <li>MA5 向上突破 MA20（黃金交叉）</li>
+                    <li>多頭排列: MA5 > MA20 > MA60</li>
+                    <li>成交量放大（大於 5 日均量）</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-primary fw-bold">✨ 策略二：拉回支撐買點</h6>
+                <p class="text-secondary mb-2 small">適用於上升趨勢中的回檔，風險較低</p>
+                <ul class="small">
+                    <li>MACD 維持多頭（DIF > DEM）</li>
+                    <li>柱狀體二次翻紅（OSC 反彈）</li>
+                    <li>收盤價守穩 MA20 支撐</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function submitAnalyze(event) {
+    event.preventDefault();
+    const ticker = document.getElementById('tickerInput').value.trim();
+    if (ticker) {
+        window.location.href = `/analyze/${ticker}`;
+    }
+}
+</script>
+{% endblock %}

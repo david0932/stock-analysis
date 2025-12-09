@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ ticker }} - 技術分析{% endblock %}
+
+{% block content %}
+<!-- 載入中提示 -->
+<div id="loadingIndicator" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">分析中...</span>
+    </div>
+    <p class="mt-3 text-secondary">正在分析 {{ ticker }}，請稍候...</p>
+</div>
+
+<!-- 分析結果區（初始隱藏） -->
+<div id="analysisResult" style="display: none;">
+
+    <!-- 股票資訊卡片 -->
+    <div class="card mb-4 border-primary">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="mb-2 mb-md-0">
+                    <h3 class="mb-1">
+                        <span id="stockName">{{ ticker }}</span>
+                        <span class="text-secondary">(<span id="stockTicker">{{ ticker }}</span>)</span>
+                    </h3>
+                    <p class="text-secondary mb-0">
+                        最新收盤: <span class="fs-4 fw-bold text-primary" id="latestClose">-</span>
+                        <span class="ms-3 small">日期: <span id="latestDate">-</span></span>
+                    </p>
+                </div>
+                <div>
+                    <a href="/" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 買點訊號摘要 -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h6 class="text-secondary small">總訊號數</h6>
+                    <h2 class="text-primary mb-0 fw-bold" id="totalSignals">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h6 class="text-secondary small">🚀 趨勢買點</h6>
+                    <h2 class="text-success mb-0 fw-bold" id="type1Signals">-</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h6 class="text-secondary small">✨ 拉回買點</h6>
+                    <h2 class="text-info mb-0 fw-bold" id="type2Signals">-</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最新訊號提示 -->
+    <div id="latestSignalAlert" class="alert" role="alert" style="display: none;">
+        <!-- 動態載入 -->
+    </div>
+
+    <!-- K 線圖 -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-graph-up"></i> K 線圖 & 移動平均線</h5>
+        </div>
+        <div class="card-body">
+            <div id="candlestickChart"></div>
+        </div>
+    </div>
+
+    <!-- 成交量圖 -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 成交量</h5>
+        </div>
+        <div class="card-body">
+            <div id="volumeChart"></div>
+        </div>
+    </div>
+
+    <!-- MACD 圖 -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-activity"></i> MACD 指標</h5>
+        </div>
+        <div class="card-body">
+            <div id="macdChart"></div>
+        </div>
+    </div>
+
+    <!-- 訊號詳細列表 -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> 買點訊號詳細列表</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="signalTable">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>訊號類型</th>
+                            <th>收盤價</th>
+                            <th>MA20</th>
+                            <th>成交量</th>
+                            <th>DIF</th>
+                            <th>DEM</th>
+                            <th>OSC</th>
+                        </tr>
+                    </thead>
+                    <tbody id="signalTableBody">
+                        <!-- 動態載入 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 操作按鈕 -->
+    <div class="text-center mb-4">
+        <button class="btn btn-primary" id="updateBtn" onclick="forceUpdate()">
+            <i class="bi bi-arrow-clockwise"></i> 更新數據
+        </button>
+        <button class="btn btn-warning" id="clearCacheBtn" onclick="clearCache()">
+            <i class="bi bi-trash"></i> 清除快取
+        </button>
+    </div>
+
+</div>
+
+<!-- 錯誤訊息區 -->
+<div id="errorMessage" class="alert alert-danger" role="alert" style="display: none;">
+    <!-- 動態載入 -->
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const TICKER = '{{ ticker }}';
+
+// 頁面載入時立即開始分析
+document.addEventListener('DOMContentLoaded', function() {
+    analyzeStock(TICKER);
+});
+
+async function analyzeStock(ticker) {
+    try {
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('analysisResult').style.display = 'none';
+        document.getElementById('errorMessage').style.display = 'none';
+
+        const response = await axios.post('/api/analyze', {
+            ticker: ticker,
+            start_date: '2024-01-01',
+            days: 120
+        });
+
+        if (response.data.success) {
+            renderAnalysisResult(response.data.data);
+        }
+
+    } catch (error) {
+        showError(error);
+    } finally {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
+
+function renderAnalysisResult(data) {
+    // 更新股票資訊
+    document.getElementById('stockName').textContent = data.stock_name || data.ticker;
+    document.getElementById('stockTicker').textContent = data.ticker;
+    document.getElementById('latestClose').textContent = data.latest_data.close.toLocaleString('zh-TW');
+    document.getElementById('latestDate').textContent = data.latest_data.date;
+
+    // 更新訊號摘要
+    document.getElementById('totalSignals').textContent = data.signals.total_count;
+    document.getElementById('type1Signals').textContent = data.signals.type1_count;
+    document.getElementById('type2Signals').textContent = data.signals.type2_count;
+
+    // 顯示最新訊號
+    if (data.signals.latest_signal) {
+        const alert = document.getElementById('latestSignalAlert');
+        alert.className = 'alert alert-success';
+        alert.style.display = 'block';
+        alert.innerHTML = `
+            <strong>🎯 最新訊號:</strong> ${data.signals.latest_signal.type}
+            (${data.signals.latest_signal.date}) - 收盤價: ${data.signals.latest_signal.close}
+        `;
+    }
+
+    // 渲染圖表
+    const config = {responsive: true, displayModeBar: true, displaylogo: false};
+    Plotly.newPlot('candlestickChart', data.chart.candlestick.data, data.chart.candlestick.layout, config);
+    Plotly.newPlot('volumeChart', data.chart.volume.data, data.chart.volume.layout, config);
+    Plotly.newPlot('macdChart', data.chart.macd.data, data.chart.macd.layout, config);
+
+    // 觸發窗口 resize 以確保圖表適應容器
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 100);
+
+    // 渲染訊號表格
+    renderSignalTable(data.signals.recent_signals);
+
+    // 顯示結果區
+    document.getElementById('analysisResult').style.display = 'block';
+}
+
+function renderSignalTable(signals) {
+    const tbody = document.getElementById('signalTableBody');
+    tbody.innerHTML = '';
+
+    signals.reverse().forEach(signal => {
+        const row = `
+            <tr>
+                <td>${signal.date}</td>
+                <td><span class="badge bg-primary">${signal.signal_type}</span></td>
+                <td>${signal.close.toLocaleString('zh-TW')}</td>
+                <td>${signal.ma20.toLocaleString('zh-TW')}</td>
+                <td>${signal.volume.toLocaleString('zh-TW')}</td>
+                <td>${signal.dif.toFixed(2)}</td>
+                <td>${signal.dem.toFixed(2)}</td>
+                <td>${signal.osc.toFixed(2)}</td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+function showError(error) {
+    const errorDiv = document.getElementById('errorMessage');
+    let message = '發生錯誤，請稍後再試';
+
+    if (error.response && error.response.data) {
+        message = error.response.data.error.message || message;
+    }
+
+    // 將換行符號轉換為 HTML 換行
+    const formattedMessage = message.replace(/\n/g, '<br>');
+    errorDiv.innerHTML = `<strong>錯誤:</strong> ${formattedMessage}`;
+    errorDiv.style.display = 'block';
+}
+
+async function forceUpdate() {
+    if (!confirm('確定要強制更新數據嗎？')) return;
+
+    try {
+        const response = await axios.post(`/api/update/${TICKER}`);
+        if (response.data.success) {
+            showToast('數據更新成功', 'success');
+            setTimeout(() => analyzeStock(TICKER), 1000);
+        }
+    } catch (error) {
+        showToast('更新失敗: ' + error.response.data.error.message, 'danger');
+    }
+}
+
+async function clearCache() {
+    if (!confirm('確定要清除快取嗎？清除後將重新下載數據。')) return;
+
+    try {
+        const response = await axios.delete(`/api/cache/${TICKER}`);
+        if (response.data.success) {
+            showToast('快取已清除', 'success');
+            setTimeout(() => window.location.href = '/', 1000);
+        }
+    } catch (error) {
+        showToast('清除失敗: ' + error.response.data.error.message, 'danger');
+    }
+}
+</script>
+{% endblock %}

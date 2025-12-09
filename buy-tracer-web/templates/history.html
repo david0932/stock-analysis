@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}歷史記錄 - 股票買點追蹤系統{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <div class="mb-2 mb-md-0">
+        <h2><i class="bi bi-clock-history"></i> 歷史追蹤記錄</h2>
+        <p class="text-secondary mb-0">已追蹤 <span id="totalCount" class="fw-bold">0</span> 支股票</p>
+    </div>
+    <div>
+        <select class="form-select" id="sortSelect" onchange="loadHistory()">
+            <option value="last_update">最新更新</option>
+            <option value="ticker">股票代號</option>
+        </select>
+    </div>
+</div>
+
+<!-- 搜尋框 -->
+<div class="mb-4">
+    <input
+        type="text"
+        class="form-control"
+        id="searchInput"
+        placeholder="搜尋股票代號..."
+        oninput="filterStocks()"
+    >
+</div>
+
+<!-- 股票列表 -->
+<div id="stockList" class="row">
+    <!-- 動態載入 -->
+</div>
+
+<!-- 空狀態 -->
+<div id="emptyState" class="text-center my-5" style="display: none;">
+    <i class="bi bi-inbox display-1 text-secondary"></i>
+    <p class="text-secondary mt-3 h5">尚無追蹤記錄</p>
+    <a href="/" class="btn btn-primary mt-3">開始分析</a>
+</div>
+
+<!-- 載入中 -->
+<div id="loadingIndicator" class="text-center my-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">載入中...</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allStocks = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadHistory();
+});
+
+async function loadHistory() {
+    try {
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('stockList').innerHTML = '';
+
+        const sortBy = document.getElementById('sortSelect').value;
+        const response = await axios.get(`/api/history?sort_by=${sortBy}&order=desc`);
+
+        if (response.data.success) {
+            allStocks = response.data.data.stocks;
+            document.getElementById('totalCount').textContent = allStocks.length;
+
+            if (allStocks.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('stockList').style.display = 'none';
+            } else {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('stockList').style.display = 'flex';
+                renderStocks(allStocks);
+            }
+        }
+
+    } catch (error) {
+        showToast('載入失敗: ' + error.message, 'danger');
+    } finally {
+        document.getElementById('loadingIndicator').style.display = 'none';
+    }
+}
+
+function renderStocks(stocks) {
+    const container = document.getElementById('stockList');
+    container.innerHTML = '';
+
+    stocks.forEach(stock => {
+        const card = `
+            <div class="col-md-6 col-lg-4 mb-3 stock-card" data-ticker="${stock.ticker}">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            ${stock.ticker}
+                            <span class="badge bg-secondary ms-2">${stock.file_size_kb} KB</span>
+                        </h5>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-range"></i>
+                                ${stock.date_range.start_date} ~ ${stock.date_range.end_date}
+                            </small><br>
+                            <small class="text-muted">
+                                <i class="bi bi-clock"></i>
+                                更新: ${new Date(stock.last_update).toLocaleString('zh-TW')}
+                            </small><br>
+                            <small class="text-muted">
+                                <i class="bi bi-bar-chart"></i>
+                                ${stock.date_range.total_trading_days} 個交易日
+                            </small>
+                        </p>
+                        <div class="d-grid gap-2">
+                            <a href="/analyze/${stock.ticker}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-graph-up"></i> 查看分析
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteStock('${stock.ticker}', event)">
+                                <i class="bi bi-trash"></i> 刪除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.innerHTML += card;
+    });
+}
+
+function filterStocks() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allStocks.filter(stock =>
+        stock.ticker.toLowerCase().includes(search)
+    );
+    renderStocks(filtered);
+}
+
+async function deleteStock(ticker, event) {
+    event.preventDefault();
+
+    if (!confirm(`確定要刪除 ${ticker} 的快取嗎？`)) {
+        return;
+    }
+
+    try {
+        const response = await axios.delete(`/api/cache/${ticker}`);
+        if (response.data.success) {
+            showToast(`已刪除 ${ticker} 的快取`, 'success');
+            loadHistory();
+        }
+    } catch (error) {
+        showToast('刪除失敗: ' + error.response.data.error.message, 'danger');
+    }
+}
+</script>
+{% endblock %}

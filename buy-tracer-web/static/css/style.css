@@ -1,0 +1,182 @@
+/* 自定義樣式 */
+
+:root {
+    --primary-color: #2563eb;
+    --success-color: #10b981;
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --dark-bg: #1f2937;
+    --light-bg: #f9fafb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+
+    /* 台股特色配色 */
+    --stock-up: #dc2626;
+    --stock-down: #16a34a;
+}
+
+/* 全域樣式 */
+body {
+    font-family: 'Microsoft JhengHei', 'Arial', sans-serif;
+    color: var(--text-primary);
+    background-color: var(--light-bg);
+}
+
+/* 導航欄 */
+.navbar-dark {
+    background-color: var(--dark-bg) !important;
+}
+
+.navbar-brand {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* 卡片陰影 */
+.card.shadow-sm {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.3s ease;
+}
+
+.card.shadow-sm:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 按鈕 */
+.btn {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* 輸入框 */
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+}
+
+/* 圖表容器 */
+#candlestickChart,
+#volumeChart,
+#macdChart {
+    min-height: 400px;
+    width: 100%;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.card-body > div[id$="Chart"] {
+    width: 100%;
+}
+
+/* 訊號表格 */
+#signalTable {
+    font-size: 0.9rem;
+}
+
+#signalTable th {
+    background-color: var(--dark-bg);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+}
+
+#signalTable td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* 載入指示器 */
+.spinner-border {
+    border-width: 0.25rem;
+}
+
+/* Toast 樣式 */
+.toast {
+    min-width: 250px;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .display-4 {
+        font-size: 2rem;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    #candlestickChart,
+    #volumeChart,
+    #macdChart {
+        min-height: 300px;
+    }
+}
+
+/* 工具提示 */
+.tooltip {
+    font-size: 0.875rem;
+}
+
+/* Badge 樣式 */
+.badge {
+    padding: 0.5em 0.75em;
+    font-weight: 500;
+}
+
+/* 空狀態 */
+#emptyState i {
+    font-size: 5rem;
+}
+
+/* 動畫 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 頁尾 */
+footer {
+    margin-top: auto;
+}
+
+/* Plotly 圖表調整 */
+.js-plotly-plot .plotly .modebar {
+    left: 0;
+    right: auto;
+}
+
+/* 滾動條樣式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
