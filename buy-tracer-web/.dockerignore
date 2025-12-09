@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# 開發工具
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 測試和覆蓋率
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+
+# 數據文件（本地開發用）
+data/cache/*
+data/logs/*
+data/metadata/*
+!data/.gitkeep
+
+# 文檔（可選，看是否需要）
+*.md
+!README.md
+!DEPLOYMENT.md
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 構建產物
+dist/
+build/
+*.egg-info/
+
+# 系統文件
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
