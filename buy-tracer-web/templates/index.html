@@ -153,36 +153,102 @@
 {% block extra_scripts %}
 <script>
 let stocksMap = {};  // 股票名稱到代號的映射
+let allStocks = [];  // 所有股票列表
+let loadingStocks = false;  // 是否正在載入
+let stocksLoaded = false;  // 是否已載入
+let searchTimeout = null;  // 搜尋防抖動計時器
 
-// 頁面載入時獲取股票列表
+// 頁面載入完成後設定事件監聽
 document.addEventListener('DOMContentLoaded', function() {
-    loadStocksList();
+    const input = document.getElementById('tickerInput');
+
+    // 當輸入框獲得焦點時才開始載入股票列表（延遲載入）
+    input.addEventListener('focus', function() {
+        if (!stocksLoaded && !loadingStocks) {
+            loadStocksMapInBackground();
+        }
+    }, { once: true });  // 只執行一次
+
+    // 監聽輸入事件，動態更新建議
+    input.addEventListener('input', handleInputChange);
 });
 
-async function loadStocksList() {
+// 在背景載入股票映射表（不創建 DOM 元素）
+async function loadStocksMapInBackground() {
+    if (loadingStocks || stocksLoaded) return;
+
+    loadingStocks = true;
     try {
         const response = await axios.get('/api/stocks/list');
         if (response.data.success) {
-            const stocks = response.data.data.stocks;
-            const datalist = document.getElementById('stocksList');
+            allStocks = response.data.data.stocks;
 
-            // 填充 datalist 和映射
-            stocks.forEach(stock => {
-                // 添加選項，value 為股票代號，label 顯示完整資訊
-                const option = document.createElement('option');
-                option.value = stock.ticker;  // value 為純代號
-                option.textContent = stock.display;  // 顯示 "2330 台積電"
-                datalist.appendChild(option);
-
-                // 建立映射: 名稱 -> 代號, 代號 -> 代號
+            // 只建立映射表，不操作 DOM
+            allStocks.forEach(stock => {
                 stocksMap[stock.ticker] = stock.ticker;
                 stocksMap[stock.name] = stock.ticker;
-                stocksMap[stock.display.toLowerCase()] = stock.ticker;  // 添加小寫版本
+                stocksMap[stock.display.toLowerCase()] = stock.ticker;
             });
+
+            stocksLoaded = true;
         }
     } catch (error) {
         console.error('載入股票列表失敗:', error);
+    } finally {
+        loadingStocks = false;
     }
+}
+
+// 處理輸入變化，動態更新建議
+function handleInputChange(event) {
+    const query = event.target.value.trim().toUpperCase();
+
+    // 清除之前的計時器
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+
+    // 如果輸入為空或少於 2 個字符，清空建議
+    if (query.length < 2) {
+        clearDatalist();
+        return;
+    }
+
+    // 防抖動：等待 300ms 後再更新
+    searchTimeout = setTimeout(() => {
+        updateDatalist(query);
+    }, 300);
+}
+
+// 更新 datalist 建議（限制顯示數量）
+function updateDatalist(query) {
+    if (!stocksLoaded) {
+        return;
+    }
+
+    const datalist = document.getElementById('stocksList');
+    datalist.innerHTML = '';  // 清空現有選項
+
+    // 搜尋匹配的股票（限制最多 20 個）
+    const matches = allStocks.filter(stock => {
+        return stock.ticker.includes(query) ||
+               stock.name.includes(query) ||
+               stock.display.toUpperCase().includes(query);
+    }).slice(0, 20);  // 只取前 20 個結果
+
+    // 添加到 datalist
+    matches.forEach(stock => {
+        const option = document.createElement('option');
+        option.value = stock.ticker;
+        option.textContent = stock.display;
+        datalist.appendChild(option);
+    });
+}
+
+// 清空 datalist
+function clearDatalist() {
+    const datalist = document.getElementById('stocksList');
+    datalist.innerHTML = '';
 }
 
 function submitAnalyze(event) {
