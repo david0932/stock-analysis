@@ -89,7 +89,28 @@ if [ ! -e "certbot/conf/options-ssl-nginx.conf" ] || [ ! -e "certbot/conf/ssl-dh
     print_success "TLS 參數下載完成"
 fi
 
-# 啟動 nginx（不含 SSL）
+# 備份原始 nginx.conf 並使用臨時配置
+print_info "切換到臨時 nginx 配置（不含 SSL）..."
+if [ -f "nginx.conf.backup" ]; then
+    print_warning "備份文件已存在，跳過備份"
+else
+    cp nginx.conf nginx.conf.backup
+fi
+cp nginx.conf.http-only nginx.conf
+
+# 停止現有的容器
+print_info "停止現有容器..."
+sudo docker compose down
+
+# 啟動 app 容器
+print_info "啟動應用容器..."
+sudo docker compose up -d app
+
+# 等待 app 容器啟動
+print_info "等待應用容器啟動..."
+sleep 10
+
+# 啟動 nginx（使用臨時配置，不含 SSL）
 print_info "啟動 nginx..."
 sudo docker compose up -d nginx
 
@@ -97,7 +118,11 @@ sudo docker compose up -d nginx
 print_info "等待 nginx 啟動..."
 sleep 5
 
-# 刪除現有的 nginx 容器中的證書掛載（如果存在）
+# 檢查容器狀態
+print_info "檢查容器狀態..."
+sudo docker compose ps
+
+# 準備獲取證書
 print_info "準備獲取證書..."
 
 # 設定證書請求參數
@@ -119,9 +144,14 @@ sudo docker compose run --rm certbot $CERTBOT_ARGS
 if [ $? -eq 0 ]; then
     print_success "證書獲取成功！"
 
+    # 恢復完整的 nginx 配置（含 SSL）
+    print_info "恢復完整的 nginx 配置..."
+    cp nginx.conf.backup nginx.conf
+
     # 重啟 nginx 以加載證書
     print_info "重啟 nginx 以啟用 SSL..."
-    sudo docker compose restart nginx
+    sudo docker compose down nginx
+    sudo docker compose up -d nginx
 
     # 啟動 certbot 自動續期服務
     print_info "啟動證書自動續期服務..."
