@@ -8,7 +8,7 @@ set -e
 
 # 配置
 DOMAIN="tearice.win"
-EMAIL="your-email@example.com"  # 請修改為您的電子郵件
+EMAIL="tearice3973@gmail.com"  # 請修改為您的電子郵件
 STAGING=0  # 設為 1 使用測試環境，設為 0 使用正式環境
 
 # 顏色輸出
@@ -139,7 +139,13 @@ fi
 
 # 獲取證書
 print_info "請求 Let's Encrypt 證書..."
-sudo docker compose run --rm certbot $CERTBOT_ARGS
+print_info "執行命令: certbot $CERTBOT_ARGS"
+sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+    --email "$EMAIL" \
+    -d "$DOMAIN" -d "www.$DOMAIN" \
+    --agree-tos \
+    --no-eff-email \
+    $([ $STAGING != "0" ] && echo "--staging" || echo "")
 
 if [ $? -eq 0 ]; then
     print_success "證書獲取成功！"
