@@ -95,17 +95,17 @@ STAGING=1  # 使用測試環境
 ./renew-cert.sh
 ```
 
-或使用 docker-compose：
+或使用 docker compose：
 ```bash
-docker-compose run --rm certbot renew
-docker-compose exec nginx nginx -s reload
+sudo docker compose run --rm certbot renew
+sudo docker compose exec nginx nginx -s reload
 ```
 
 ### 查看證書狀態
 
 ```bash
 # 查看證書信息
-docker-compose run --rm certbot certificates
+sudo docker compose run --rm certbot certificates
 
 # 查看證書有效期
 sudo ls -la /var/lib/docker/volumes/buy-tracer-web_certbot-etc/_data/live/tearice.win/
@@ -127,8 +127,8 @@ sudo netstat -tlnp | grep :80
 sudo netstat -tlnp | grep :443
 
 # 檢查 nginx 是否運行
-docker ps | grep nginx
-docker-compose logs nginx
+sudo docker ps | grep nginx
+sudo docker compose logs nginx
 ```
 
 **錯誤：達到請求限制**
@@ -140,33 +140,33 @@ Let's Encrypt 有以下限制：
 解決方法：
 1. 使用 `STAGING=1` 進行測試
 2. 等待一週後重試
-3. 查看詳細錯誤：`docker-compose logs certbot`
+3. 查看詳細錯誤：`sudo docker compose logs certbot`
 
 ### 2. HTTPS 無法訪問
 
 檢查項目：
 ```bash
 # 檢查 nginx 配置
-docker-compose exec nginx nginx -t
+sudo docker compose exec nginx nginx -t
 
 # 檢查容器狀態
-docker-compose ps
+sudo docker compose ps
 
 # 查看 nginx 日誌
-docker-compose logs nginx
+sudo docker compose logs nginx
 
 # 檢查證書掛載
-docker-compose exec nginx ls -la /etc/letsencrypt/live/tearice.win/
+sudo docker compose exec nginx ls -la /etc/letsencrypt/live/tearice.win/
 ```
 
 ### 3. 證書自動續期失敗
 
 檢查 certbot 日誌：
 ```bash
-docker-compose logs certbot
+sudo docker compose logs certbot
 
 # 手動測試續期
-docker-compose run --rm certbot renew --dry-run
+sudo docker compose run --rm certbot renew --dry-run
 ```
 
 ## 進階配置
@@ -188,6 +188,8 @@ DOMAIN="your-new-domain.com"
 CERTBOT_ARGS="$CERTBOT_ARGS -d domain1.com -d www.domain1.com -d domain2.com"
 ```
 
+同時更新 `nginx.conf` 中的 `server_name`。
+
 ### 強制 HTTPS
 
 已在 `nginx.conf` 中配置，所有 HTTP 請求自動重定向到 HTTPS：
@@ -207,21 +209,21 @@ location / {
 
 ```bash
 # 查看所有容器狀態
-docker-compose ps
+sudo docker compose ps
 
 # 重啟服務
-docker-compose restart nginx
-docker-compose restart certbot
+sudo docker compose restart nginx
+sudo docker compose restart certbot
 
 # 查看日誌
-docker-compose logs -f nginx
-docker-compose logs -f certbot
+sudo docker compose logs -f nginx
+sudo docker compose logs -f certbot
 
 # 停止服務
-docker-compose down
+sudo docker compose down
 
 # 完全重新部署
-docker-compose down -v
+sudo docker compose down -v
 ./init-letsencrypt.sh
 
 # 備份證書

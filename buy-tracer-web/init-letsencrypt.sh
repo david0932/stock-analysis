@@ -73,7 +73,7 @@ if [ -d "certbot/conf/live/$DOMAIN" ]; then
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_info "續期證書..."
-        docker-compose run --rm certbot renew
+        sudo docker compose run --rm certbot renew
         print_success "證書續期完成"
         exit 0
     else
@@ -91,7 +91,7 @@ fi
 
 # 啟動 nginx（不含 SSL）
 print_info "啟動 nginx..."
-docker-compose up -d nginx
+sudo docker compose up -d nginx
 
 # 等待 nginx 啟動
 print_info "等待 nginx 啟動..."
@@ -114,18 +114,18 @@ fi
 
 # 獲取證書
 print_info "請求 Let's Encrypt 證書..."
-docker-compose run --rm certbot $CERTBOT_ARGS
+sudo docker compose run --rm certbot $CERTBOT_ARGS
 
 if [ $? -eq 0 ]; then
     print_success "證書獲取成功！"
 
     # 重啟 nginx 以加載證書
     print_info "重啟 nginx 以啟用 SSL..."
-    docker-compose restart nginx
+    sudo docker compose restart nginx
 
     # 啟動 certbot 自動續期服務
     print_info "啟動證書自動續期服務..."
-    docker-compose up -d certbot
+    sudo docker compose up -d certbot
 
     echo ""
     echo "============================================"
@@ -147,7 +147,7 @@ else
     print_info "  3. Docker 容器是否正常運行"
     echo ""
     print_info "查看詳細日誌："
-    echo "  docker-compose logs nginx"
-    echo "  docker-compose logs certbot"
+    echo "  sudo docker compose logs nginx"
+    echo "  sudo docker compose logs certbot"
     exit 1
 fi
