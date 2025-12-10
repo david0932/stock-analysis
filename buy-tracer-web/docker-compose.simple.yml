@@ -18,8 +18,12 @@ services:
       - DEFAULT_START_DATE=2024-01-01
       - DEFAULT_PLOT_DAYS=120
       - LOG_LEVEL=INFO
+      - TZ=Asia/Taipei
     volumes:
       - ./data:/app/data
+      # 同步宿主機時區設定
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/health')"]
       interval: 30s

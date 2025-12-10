@@ -19,9 +19,13 @@ services:
       - DEFAULT_START_DATE=2024-01-01
       - DEFAULT_PLOT_DAYS=120
       - LOG_LEVEL=INFO
+      - TZ=Asia/Taipei
     volumes:
       # 持久化數據目錄（快取、日誌等）
       - app-data:/app/data
+      # 同步宿主機時區設定
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - stock-network
     healthcheck:
