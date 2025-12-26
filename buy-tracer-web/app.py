@@ -24,6 +24,10 @@ def create_app(config_name=None):
     Returns:
         Flask: Flask 應用實例
     """
+    # 套用 twstock 修補程式（必須在使用 twstock 之前）
+    from utils import apply_twstock_patch
+    apply_twstock_patch()
+
     app = Flask(__name__)
 
     # 載入配置
